@@ -59,10 +59,6 @@ function goOutFullScreen() {
     if (get_session != undefined) {
         dataset = JSON.parse(get_session);
     }
-    if (dataset && dataset.selectedBu && dataset.selectedFactory) {
-        sBu = dataset.selectedBu;
-        idFactory = dataset.selectedFactory;
-    }
 
     var timeTitle = '';
     var temp_selection;
@@ -133,8 +129,6 @@ function goOutFullScreen() {
         // idBu = '';
         // var nameFactory = $("#btnBu").val();
         _state.nameFactory = $("#btnBu").val();
-            dataset.selectedBu = _state.nameFactory;
-    window.sessionStorage.setItem('dataset', JSON.stringify(dataset));
         getFactory(_state.nameFactory); 
     });
 
@@ -205,9 +199,10 @@ function goOutFullScreen() {
         // dataset.idBu = $(this).val();
         var idFac = $("#select-factory").val();
         _state.idFac=idFac;
-        dataset.selectedFactory = idFac;
-        window.sessionStorage.setItem('dataset', JSON.stringify(dataset));
+        console.log(_state.idFac);
         loadItem(idFac);
+        window.sessionStorage.setItem('dataset', JSON.stringify(dataset));
+
     });
 
 
@@ -1582,7 +1577,7 @@ function goOutFullScreen() {
             isLoading = false;
             if (!isLoading){
                 window.autoReloadTimeout && clearInterval(window.autoReloadTimeout);
-                window.autoReloadTimeout = setInterval(reloadData, 10000);
+                window.autoReloadTimeout = setInterval(reloadData, 300000);
             }
         }
         });
