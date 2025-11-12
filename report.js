@@ -1,27 +1,36 @@
-const GLOBAL = { cft: "RING" };
+const GLOBAL = { cft: "RING", modalView: "top5", errorInfoCache: {}, editingError: null };
 GLOBAL.getCft = () => GLOBAL.cft || "RING";
 const chartsList = [];
 const loadEvent = () => {
-    window.addEventListener("resize", () => applyScaleToCharts());
-
-    document.querySelector("#table-2 tbody").addEventListener("click", function (e) {
-        const cell = e.target.closest("td");
-        if (!cell) return;
-
-        const colIndex = cell.cellIndex;
-        if (colIndex === 5 || colIndex === 6) {
-            const modal = new bootstrap.Modal(document.getElementById("modal-update"));
-            modal.show();
-        }
+    window.addEventListener("resize", () => {
+        applyScaleToCharts(); 
+        adjustCharts();
     });
+
+    const table2Body = document.querySelector("#table-2 tbody");
+    if (table2Body) {
+        table2Body.addEventListener("click", function (e) {
+            const cell = e.target.closest("td");
+            if (!cell || !cell.classList.contains("editable-cell")) return;
+            const row = cell.closest("tr");
+            openUpdateModal(row);
+        });
+    }
 
     const modalTop5 = document.getElementById("modal-top5");
     if (modalTop5) {
         modalTop5.addEventListener("shown.bs.modal", () => {
             try {
+                setupModalViewToggle();
+                setModalView(GLOBAL.modalView || "top5");
                 modalControl();
             } catch (_) { }
         });
+    }
+
+    const saveBtn = document.getElementById("save-update");
+    if (saveBtn) {
+        saveBtn.addEventListener("click", handleSaveErrorInfo);
     }
 
     const customerSelect = document.getElementById("customerSelect");
@@ -148,6 +157,178 @@ function clearTop5Table() {
     if (!table || !tbody) return;
 
     tbody.innerHTML = "";
+}
+
+const getErrorInfoKey = (code = "") => (code || "").toUpperCase();
+
+async function fetchErrorInfoByCodes(errorCodes = []) {
+    const codes = Array.from(new Set((errorCodes || []).map(getErrorInfoKey))).filter(Boolean);
+    if (!codes.length) return {};
+
+    GLOBAL.errorInfoCache = GLOBAL.errorInfoCache || {};
+    const missing = codes.filter((code) => !GLOBAL.errorInfoCache[code]);
+
+    if (missing.length) {
+        try {
+            const url = `/production-system/api/cnt-machine-error/error-info?errorCodeString=${encodeURIComponent(missing.join(","))}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            const json = await res.json();
+            const list = Array.isArray(json?.data)
+                ? json.data
+                : Array.isArray(json?.data?.content)
+                    ? json.data.content
+                    : [];
+            list.forEach((item) => {
+                const key = getErrorInfoKey(item?.errorCode || item?.error_code || item?.code);
+                if (!key) return;
+                GLOBAL.errorInfoCache[key] = {
+                    rootCause: item?.rootCause ?? item?.rootcause ?? "",
+                    action: item?.action ?? item?.correctiveAction ?? "",
+                    owner: item?.owner ?? "",
+                    status: item?.status ?? "",
+                };
+            });
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    return codes.reduce((acc, code) => {
+        const cached = GLOBAL.errorInfoCache[code];
+        acc[code] = cached
+            ? { ...cached }
+            : { rootCause: "", action: "", owner: "", status: "" };
+        return acc;
+    }, {});
+}
+
+function setupModalViewToggle() {
+    const toggle = document.getElementById("modal-view-toggle");
+    if (!toggle || toggle.dataset.bound === "true") return;
+    toggle.dataset.bound = "true";
+    toggle.addEventListener("click", (event) => {
+        const btn = event.target.closest("button[data-view]");
+        if (!btn) return;
+        setModalView(btn.dataset.view);
+    });
+}
+
+function setModalView(view) {
+    const top5Wrapper = document.getElementById("top5-table-wrapper");
+    const summaryWrapper = document.getElementById("summary-table-wrapper");
+    if (!top5Wrapper || !summaryWrapper) return;
+
+    let targetView = view === "summary" ? "summary" : "top5";
+    if (targetView === "summary") {
+        top5Wrapper.classList.add("d-none");
+        summaryWrapper.classList.remove("d-none");
+        resetSummaryTable();
+    } else {
+        top5Wrapper.classList.remove("d-none");
+        summaryWrapper.classList.add("d-none");
+    }
+
+    const toggle = document.getElementById("modal-view-toggle");
+    if (toggle) {
+        toggle.querySelectorAll("button").forEach((btn) => {
+            btn.classList.toggle("active", btn.dataset.view === targetView);
+        });
+    }
+
+    GLOBAL.modalView = targetView;
+}
+
+function resetSummaryTable() {
+    const tbody = document.querySelector("#summary-table tbody");
+    if (tbody) tbody.innerHTML = "";
+}
+
+function openUpdateModal(row) {
+    if (!row) return;
+    const rootInput = document.getElementById("root-cause");
+    const actionInput = document.getElementById("corrective-action");
+    const modalEl = document.getElementById("modal-update");
+    if (!rootInput || !actionInput || !modalEl) return;
+
+    const errorCode = row.dataset.errorCode || "";
+    if (!errorCode) return;
+
+    rootInput.value = row.dataset.rootCause || "";
+    actionInput.value = row.dataset.action || "";
+
+    GLOBAL.editingError = {
+        errorCode,
+        machineNo: row.dataset.machine || "",
+        row,
+    };
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+}
+
+async function handleSaveErrorInfo() {
+    const rootInput = document.getElementById("root-cause");
+    const actionInput = document.getElementById("corrective-action");
+    if (!rootInput || !actionInput) return;
+
+    const editing = GLOBAL.editingError;
+    if (!editing || !editing.errorCode) return;
+
+    const payload = {
+        machineNo: editing.machineNo || "",
+        rootCause: rootInput.value.trim(),
+        action: actionInput.value.trim(),
+    };
+
+    const hasLoader = typeof loader !== "undefined";
+    if (hasLoader && typeof loader.load === "function") loader.load();
+
+    try {
+        const res = await fetch(`/production-system/api/cnt-machine-error/error-info/${encodeURIComponent(editing.errorCode)}`,
+            {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            }
+        );
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        updateRowErrorInfo(editing.row, payload);
+        const modal = bootstrap.Modal.getInstance(document.getElementById("modal-update"));
+        if (modal) modal.hide();
+    } catch (error) {
+        console.error(error);
+    } finally {
+        if (hasLoader && typeof loader.unload === "function") loader.unload();
+        GLOBAL.editingError = null;
+    }
+}
+
+function updateRowErrorInfo(row, { rootCause, action }) {
+    if (!row) return;
+
+    const rootCell = row.querySelector('td[data-field="rootCause"]');
+    const actionCell = row.querySelector('td[data-field="action"]');
+    const rootText = rootCause || "";
+    const actionText = action || "";
+
+    if (rootCell) rootCell.textContent = rootText || "-";
+    if (actionCell) actionCell.textContent = actionText || "-";
+
+    row.dataset.rootCause = rootText;
+    row.dataset.action = actionText;
+
+    const key = getErrorInfoKey(row.dataset.errorCode || "");
+    if (!key) return;
+
+    GLOBAL.errorInfoCache = GLOBAL.errorInfoCache || {};
+    GLOBAL.errorInfoCache[key] = {
+        ...(GLOBAL.errorInfoCache[key] || {}),
+        rootCause: rootText,
+        action: actionText,
+        owner: GLOBAL.errorInfoCache[key]?.owner || "",
+        status: GLOBAL.errorInfoCache[key]?.status || "",
+    };
 }
 
 
@@ -600,7 +781,7 @@ function getProjectAndStation() {
                 top5Data = Array.isArray(result?.top5) ? result.top5 : [];
             }
 
-            renderModalTable(top5Data);
+            await renderModalTable(top5Data);
 
             chartData.forEach((data, idx) => {
                 const chartId = `chart-${idx + 1}`;
@@ -640,6 +821,7 @@ async function fetchChartDataShift({ project, station, fromDate, toDate }) {
             totalRate: error.totalRate,
             data: error.data,
             totalNtf: error.totalNtf,
+            machineNo: error.machineNo || "",
         }));
 
         const top5 = summarized.sort((a, b) => b.totalRate - a.totalRate).slice(0, 5);
@@ -715,6 +897,7 @@ async function fetchChartDataDate({ project, station, fromDate, toDate }) {
             totalRate: error.totalRate,
             data: error.data,
             totalNtf: error.totalNtf,
+            machineNo: error.machineNo || "",
         }));
 
         const top5 = summarized.sort((a, b) => b.totalRate - a.totalRate).slice(0, 5);
@@ -805,6 +988,7 @@ async function fetchChartDataHour({ project, station, workDate }) {
                 errorCode: error.errorCode,
                 totalRate: error.totalRate ?? 0,
                 totalNtf: error.totalNtf ?? 0,
+                machineNo: error.machineNo || "",
             })),
         };
     } catch (err) {
@@ -813,8 +997,8 @@ async function fetchChartDataHour({ project, station, workDate }) {
     }
 }
 
-function renderModalTable(top5Data) {
-    const container = document.querySelector("#modal-top5 .table-responsive");
+async function renderModalTable(top5Data) {
+    const container = document.getElementById("top5-table-wrapper");
     const table = document.getElementById("table-2");
     const tbody = table?.querySelector("tbody");
     if (!container || !table || !tbody) return;
@@ -840,19 +1024,66 @@ function renderModalTable(top5Data) {
     if (noDataEl) noDataEl.classList.add("d-none");
     table.classList.remove("d-none");
 
+    const infoMap = await fetchErrorInfoByCodes(top5Data.map((item) => item?.errorCode));
     tbody.innerHTML = "";
 
     top5Data.forEach((item, index) => {
         const row = document.createElement("tr");
-        row.innerHTML = `
-            <td class="text-center align-middle">${index + 1}</td>
-            <td class="text-center align-middle">${item.errorCode}</td>
-            <td class="text-center align-middle">${formatPercent(item.totalRate)}%</td>
-            <td class="text-center align-middle">${item.totalNtf}</td>
-            <td class="chart-container">
-                <div id="chart-${index + 1}" class="chart-wrapper"></div>
-            </td>
-        `;
+        const errorCode = item?.errorCode || "";
+        const info = infoMap[getErrorInfoKey(errorCode)] || { rootCause: "", action: "", owner: "", status: "" };
+        const rootCause = info.rootCause || "";
+        const action = info.action || "";
+        const owner = info.owner || "N/A";
+        const status = info.status || "N/A";
+
+        row.dataset.errorCode = errorCode;
+        row.dataset.machine = item?.machineNo || "";
+        row.dataset.rootCause = rootCause;
+        row.dataset.action = action;
+        row.dataset.owner = owner;
+        row.dataset.status = status;
+
+        const appendCell = (text, className) => {
+            const td = document.createElement("td");
+            td.className = className;
+            td.textContent = text;
+            row.appendChild(td);
+            return td;
+        };
+
+        appendCell(`${index + 1}`, "text-center align-middle");
+        appendCell(errorCode || "-", "text-center align-middle");
+
+        const rate = formatPercent(item?.totalRate);
+        appendCell(rate === "-" ? "-" : `${rate}%`, "text-center align-middle");
+
+        const totalErrors =
+            typeof item?.totalNtf === "number" ? item.totalNtf.toLocaleString() : item?.totalNtf || "-";
+        appendCell(totalErrors, "text-center align-middle");
+
+        const chartTd = document.createElement("td");
+        chartTd.className = "chart-container";
+        const chartWrapper = document.createElement("div");
+        chartWrapper.id = `chart-${index + 1}`;
+        chartWrapper.className = "chart-wrapper";
+        chartTd.appendChild(chartWrapper);
+        row.appendChild(chartTd);
+
+        const rootTd = document.createElement("td");
+        rootTd.className = "text-start align-middle editable-cell";
+        rootTd.dataset.field = "rootCause";
+        rootTd.textContent = rootCause || "-";
+        row.appendChild(rootTd);
+
+        const actionTd = document.createElement("td");
+        actionTd.className = "text-start align-middle editable-cell";
+        actionTd.dataset.field = "action";
+        actionTd.textContent = action || "-";
+        row.appendChild(actionTd);
+
+        appendCell(owner, "text-center align-middle");
+        appendCell(status, "text-center align-middle");
+
         tbody.append(row);
     });
 }
@@ -910,7 +1141,7 @@ function modalControl() {
                         ? await fetchDateData(project, station, picker)
                         : await fetchHourData(project, station, picker.startDate.format("YYYY/MM/DD"));
             renderTitleInfo(GLOBAL.currentSelection);
-            renderModalTable(top5Data);
+            await renderModalTable(top5Data);
 
             setTimeout(() => {
                 renderCharts(chartData);
