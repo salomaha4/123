@@ -1,3 +1,991 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java"%>
+
+<!-- <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"/> -->
+<!-- <script src="/paperless/assets/plugins/highchart/modules/exporting.js"></script>
+<script src="/paperless/assets/plugins/highchart/modules/offline-exporting.js"></script> -->
+<style>
+    /* @media only screen and (max-width: 990px) {
+        #chart_detail {
+            display: none;
+        }
+    } */
+
+    body {
+        background-image: url("/paperless/assets/images/checklist/background.png");
+        background-size: cover;
+    }
+
+    /* Let's get this party started */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    /* Track */
+    ::-webkit-scrollbar-track {
+        -webkit-box-shadow: inset 0 0 6px rgba(0, 100, 167, 0.377);
+        -webkit-border-radius: 4px;
+        border-radius: 4px;
+    }
+
+    /* Handle */
+    ::-webkit-scrollbar-thumb {
+        -webkit-border-radius: 4px;
+        border-radius: 4px;
+        background: #0ee4ff;
+        -webkit-box-shadow: inset 0 0 6px #002930;
+    }
+
+    ::-webkit-scrollbar-thumb:window-inactive {
+        background: #0ee4ff;
+    }
+
+    .tableFixHead {
+        overflow-y: auto;
+        height: 86%;
+    }
+
+    #tbl {
+        width: 100%;
+        text-align: center;
+        border-collapse: separate;
+        border-spacing: 0;
+        line-height: 2;
+    }
+
+    #tbl th {
+        /* Apply both top and bottom borders to the <th> */
+        border-top: 1px solid #00515f93;
+        border-bottom: 1px solid #00515f93;
+        border-right: 1px solid #00515f93;
+        ;
+    }
+
+    #tbl td {
+        /* For cells, apply the border to one of each side only (right but not left, bottom but not top) */
+        border-bottom: 1px solid #00515f93;
+        border-right: 1px solid #00515f93;
+    }
+
+    #tbl th:first-child,
+    #tbl td:first-child {
+        /* Apply a left border on the first <td> or <th> in a row */
+        border-left: 1px solid #00515f93;
+    }
+
+    #tbl thead th {
+        position: sticky;
+        top: 0;
+        background-color: #092436;
+        color: #068b8d;
+    }
+
+    /* img {
+        position: absolute;
+    } */
+
+    #box-1 {
+        margin: 0;
+        padding: 0;
+        background-image: url("/paperless/assets/images/checklist/box1.png");
+        background-size: 100% 100%;
+    }
+
+    .box2 {
+        /* background-image: url("/paperless/assets/dist/img/Group7452.png"); */
+        background-size: 100% 100%;
+        position: relative;
+    }
+
+    #box-3 {
+        /* background-image: url("/paperless/assets/dist/img/Group7452.png"); */
+        background-size: 100% 100%;
+        padding: 0.8%;
+    }
+
+    .header1 {
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        margin: 0px !important;
+        position: relative;
+    }
+
+    .header2 {
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+
+    .text {
+        color: #daf9f7;
+        position: absolute;
+        /* font-family: 'Gentium Basic', serif !important; */
+        text-align: center;
+        width: 100%;
+        font-size: 2.8vh;
+        margin: auto;
+    }
+
+    .text2 {
+        color: #daf9f7;
+        position: absolute;
+        padding: 3px;
+        /* font-family: sans-serif; */
+        text-align: center;
+        width: 100%;
+        font-size: 2.3vh;
+        margin: auto;
+        margin-top: 5vh;
+        background-image: url("/paperless/assets/images/checklist/FAI2.png");
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+    .text3 {
+        position: absolute;
+        color: #00c2dc;
+        /* font-family: sans-serif; */
+        text-align: left;
+        width: 100%;
+        font-size: 0.9rem;
+        margin: -0.6rem 0rem 0rem 3rem;
+    }
+
+    .header_in {
+        width: 100%;
+        position: absolute;
+        top: 0.5vh;
+    }
+
+    .ad .right {
+        margin-bottom: 0px;
+        margin-right: 6em;
+        width: auto;
+        background: transparent;
+        color: #00bdd6;
+        font-size: 14px;
+        border: solid #2f8abc 1px;
+        box-shadow: 0 2px 4px 0 #2f8abc;
+        border-radius: 4px;
+    }
+
+    .btn-circle {
+        border: none;
+        width: 50px;
+        height: 32px;
+        padding: 6px 0px;
+        /* border-radius: 15px; */
+        text-align: center;
+        font-size: 12px;
+        line-height: 1.42857;
+    }
+
+    .btn-circle option {
+        background: #034e78;
+    }
+
+    .btn-h1 .btn-primary,
+    .btn-show-total {
+        color: #00c2dc;
+        background-color: #ffffff00;
+        background-size: 100% 100%;
+        border: solid #2f8abc 1px;
+        box-shadow: 0 2px 4px 0 #2f8abc;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f9f9f9;
+        min-width: 250px;
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+        font-size: 0.8em;
+    }
+
+    .dropdown-content a {
+        color: #7bbef9;
+        padding: 13px 10px;
+        text-decoration: none;
+        display: block;
+        background-color: #09223a;
+    }
+
+    .dropdown-content a:hover {
+        background-color: #087177
+    }
+
+    .dropdown-content a:active {
+        background-color: #00c2dc
+    }
+
+    /*end header*/
+    .chart {
+        height: 24.5vh;
+        overflow: hidden;
+        margin: auto;
+        margin: 0.4rem 0.5rem 0.8rem 0.5rem;
+    }
+
+    .timspan_group {
+        position: absolute;
+        text-align: left;
+        width: 12%;
+        margin: -1rem 0rem 0rem 8rem;
+        height: 1.6rem;
+        font-size: 0.9em;
+    }
+
+    .timespan_input {
+        height: 1.6rem;
+    }
+
+    .timespan_prepend {
+        height: 1.6rem;
+    }
+
+    .timespan_text {
+        height: 1.6rem;
+        padding-left: 0rem;
+        padding-right: 0rem;
+    }
+
+    .btn_group {
+        position: absolute;
+        margin: -1.5rem 0rem 0rem 18.5rem;
+        padding: 0.15rem;
+        margin-top: -0.9rem;
+        color: #068b8d;
+        background: #011428;
+        outline: none;
+        border-radius: 4px;
+        border: 1px solid #068b8d;
+    }
+
+    .input-group-prepend .input-group-text {
+        color: #00c2dc;
+        background: transparent;
+        border: 1px solid #068b8d;
+    }
+
+    #reservation {
+        background: transparent;
+        border: 1px solid #068b8d;
+        color: #00c2dc;
+
+    }
+
+    .check_bar progress[value] {
+        /* Reset the default appearance */
+        -webkit-appearance: none;
+        appearance: none;
+        width: 60%;
+        height: 1.2vh;
+    }
+
+    .check_bar progress[value]::-webkit-progress-bar {
+        background-color: rgba(238, 238, 238, 0);
+        /* border: #056e9f solid 1px; */
+        border-width: 1px;
+        border-style: solid;
+        border-color: #3bdbc0;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) inset;
+    }
+
+    .check_bar progress[value]::-webkit-progress-value {
+        background-image:
+            -webkit-linear-gradient(left, #25926b, #3bdbc0);
+        border-radius: 2px;
+    }
+
+    .uncheck_bar progress[value] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 60%;
+        height: 1.2vh;
+    }
+
+    .uncheck_bar progress[value]::-webkit-progress-bar {
+        background-color: rgba(238, 238, 238, 0);
+        border-width: 1px;
+        border-style: solid;
+        border-color: #f4eb96;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) inset;
+    }
+
+    .uncheck_bar progress[value]::-webkit-progress-value {
+        background-image:
+            -webkit-linear-gradient(left, #e0cd00, #f4eb96);
+        border-radius: 2px;
+    }
+
+    .abnormal_bar progress[value] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 60%;
+        height: 1.2vh;
+    }
+
+    .abnormal_bar progress[value]::-webkit-progress-bar {
+        background-color: rgba(238, 238, 238, 0);
+        border-width: 1px;
+        border-style: solid;
+        border-color: #ff9b78;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) inset;
+    }
+
+    .abnormal_bar progress[value]::-webkit-progress-value {
+        background-image:
+            -webkit-linear-gradient(left, #f87a30, #ff9b78);
+        border-radius: 2px;
+    }
+
+
+    /* #tbl  {
+        border: rgb(42, 77, 77) solid 1px;
+    } */
+
+    #myInput {
+        color: #00c2dc;
+        /* background: transparent; */
+        border: 1px solid #068b8d;
+        border-radius: 2px;
+        background-color: #068b8d2c;
+        font-family: sans-serif, FontAwesome;
+    }
+
+    ::placeholder {
+        color: #0e7279;
+        opacity: 1;
+        /* Firefox */
+    }
+
+    :-ms-input-placeholder {
+        /* Internet Explorer 10-11 */
+        color: #0e7279;
+    }
+
+    ::-ms-input-placeholder {
+        /* Microsoft Edge */
+        color: #0e7279;
+    }
+
+    .d_btn {
+        text-align: center;
+        padding: 3px;
+        height: 100%;
+        min-width: 50px;
+        border: 1px solid #068b8d;
+        background-color: #068b8d2c;
+        color: #00c2dc;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .d_btn_dis {
+        border: 1px solid #838383;
+        background-color: #8383832c;
+        color: #838383;
+        cursor: not-allowed;
+    }
+
+    .detail_s {
+        padding: 0px;
+        width: 100%;
+        margin: auto;
+    }
+
+    .detail_s .number {
+        font-size: 6vh;
+        line-height: 0.9;
+        font-weight: bold;
+        color: #00c2dc;
+        width: 100%;
+        text-align: center;
+    }
+
+    .detail_s .name {
+        font-size: 12px;
+        color: #00c2dc;
+        width: 100%;
+        text-align: center;
+    }
+
+    .detail_s .uncheck {
+        color: #f4eb96;
+    }
+
+    .detail_s .check {
+        color: #3bdbc0;
+    }
+
+    .detail_s .abnormal {
+        color: #ff9b78;
+    }
+
+    .detail_s .progressBar {
+        width: 100%;
+        text-align: center;
+    }
+
+    #tbl_title,
+    #totalForm {
+        color: #8ce5ff;
+        font-weight: 500;
+        font-size: 16px;
+    }
+
+    .btn_detail {
+        background: repeating-linear-gradient(90deg, #016f71, #4CAF50 60px);
+        border: tomato;
+        border-radius: 6px;
+        margin: 5px;
+    }
+
+    /* .icon_detail{
+        cursor: pointer;
+    } */
+
+    .icon_detail:hover {
+        cursor: pointer;
+        color: #85e1ae;
+        /* font-size: 16px; */
+    }
+
+    .no_data {
+        text-align: center;
+        position: absolute;
+        top: 45%;
+    }
+
+
+    .fade {
+        opacity: 1;
+    }
+
+    #statistic-data-check-qr th {
+        position: sticky;
+        top: 0;
+    }
+
+    #statistic-data-check-qr th:first-of-type,
+    #statistic-data-check-qr td:first-of-type {
+        left: 0;
+        position: sticky;
+        background: #0e273e;
+        z-index: 3;
+        border: 1px solid #686868;
+
+    }
+
+    #statistic-data-check-qr {
+        /* z-index: 1;
+        background: #04111e; */
+        border: 1px solid #f9f9f9 !important;
+    }
+
+
+    #statistic-data-check-qr {
+        border-color: cornflowerblue;
+        margin: auto;
+        margin-bottom: 3px;
+    }
+
+    #statistic-data-check-qr tbody td {
+        padding: 3px;
+        text-align: center;
+        border: 1px solid #686868;
+    }
+
+    #statistic-data-check-qr tbody {
+        color: white;
+    }
+
+    #statistic-data-check-qr thead th {
+        min-width: 100px;
+        padding: 3px;
+        text-align: center;
+        border: 1px solid #686868 !important;
+        /* border-color: cornflowerblue; */
+    }
+
+    #statistic-data-check-qr thead tr {
+        color: white;
+    }
+
+    .value-step {
+        text-align: center;
+    }
+
+    .txt-color-success {
+        color: #00ec36;
+    }
+
+    .modal-content {
+        background: #04111e;
+        /* box-shadow: 0 0px 6px 0 #ffffff; */
+        border: 1px solid #f9f9f9;
+    }
+
+    .card-body {
+        background: #04111e;
+        /* background: #ffffff00; */
+        padding: 0.5rem 1rem 0.5rem 1rem;
+    }
+
+    .card {
+        background: #4a53521a;
+        margin-bottom: 0;
+    }
+
+    .modal-header {
+        background: #f1f1f11f;
+        border: 0;
+    }
+
+    .modal-footer {
+        background: #f1f1f11f;
+        border: 0;
+    }
+
+    #name_form {
+        color: #9cfeff;
+    }
+
+    .head-table .clear-view {
+        color: #f1f1f1;
+    }
+
+    .modalQr-code .clear-view {
+        color: aquamarine;
+    }
+
+    .bar_charts {
+        float: left;
+    }
+
+    .item_bar {
+        border: #068b8d solid 1px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin: 0 4px;
+        width: fit-content;
+        padding: 2px 4px;
+    }
+
+    .item_bar:hover {
+        /* border: #068b8d solid 1px; */
+        background-color: rgba(0, 74, 97, 0.356);
+    }
+
+    .item_bar_active {
+        border: #ffffff solid 1px;
+        background-color: rgba(0, 74, 97, 0.356);
+        color: #00c2dc;
+    }
+
+    .highcharts-figure,
+    .highcharts-data-table table {
+        min-width: 100%;
+        max-width: 100%;
+        margin: 1em auto;
+    }
+
+    .highcharts-data-table table {
+        font-family: Verdana, sans-serif;
+        border-collapse: collapse;
+        border: 1px solid #ebebeb;
+        margin: 10px auto;
+        text-align: center;
+        width: 100%;
+        max-width: 500px;
+    }
+
+    .highcharts-data-table caption {
+        padding: 1em 0;
+        font-size: 1.2em;
+        color: #555;
+    }
+
+    .highcharts-data-table th {
+        font-weight: 600;
+        padding: 0.5em;
+    }
+
+    .highcharts-data-table td,
+    .highcharts-data-table th,
+    .highcharts-data-table caption {
+        padding: 0.5em;
+    }
+
+    .highcharts-data-table thead tr,
+    .highcharts-data-table tr:nth-child(even) {
+        background: #f8f8f8;
+    }
+
+    .highcharts-data-table tr:hover {
+        background: #f1f7ff;
+    }
+
+    /* .highcharts-figure,
+    .highcharts-data-table table {
+        min-width: 310px;
+        max-width: 800px;
+        margin: 1em auto;
+    } */
+
+    #chart-by-team {
+        height: 400px;
+    }
+
+    .loader {
+        display: block;
+        position: fixed;
+        z-index: 1000;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background: rgba(10 10 10 / 22%) url('/paperless/assets/images/loadingg.gif') 50% 50% no-repeat;
+    }
+
+    .css-time-span {
+        width: 220px;
+        margin-top: 5px;
+    }
+
+    .content {
+        width: 99vw;
+        height: 99vh;
+        padding: 0 0 0 10px;
+    }
+
+    @media only screen and (min-width: 960px) and (max-width: 1024px) {
+        body {
+            font-size: 11px !important;
+        }
+
+        .css-time-span {
+            width: 147px;
+            margin-top: 0px;
+        }
+
+        .detail_s .name {
+            font-size: 11px;
+        }
+
+        .detail_s .number {
+            font-size: 3vh;
+        }
+
+        .tableFixHead {
+            height: 81%;
+        }
+    }
+</style>
+<div class="loader"></div>
+
+<!-- <body> -->
+    <div class="header col-md-12 p-0" style=" height: 10vh">
+        <div class="header1">
+            <img src="/paperless/assets/images/checklist/header1.png" alt="" width="100%" height="40px"
+                style="height: 5.8vh;">
+            <div class="row header_in">
+                <div class="col-md-4" style="top: 1vh">
+                    <div class="row btn-h1">
+                        <div class="col-md-2"></div>
+                        <!--<div class="col-md-1" style="margin-left: 1.3rem;"> -->
+                        <select id="btnBu" class="btn btn-primary btn-circle"></select>
+                        <!-- </div> -->
+                        <!-- <div class="col-md-1" style="margin-left: 1.3rem;"> -->
+                        <select id="select-factory" class="btn btn-primary"
+                            style="margin-left: 20px;"></select>
+                        <!-- </div> -->
+                        <div class="col-md-1 dropdown d-none" style="margin-left: 1.3rem;">
+                            <select id="select-team" class="dropbtn btn btn-primary btn-circle">TEAM</select>
+                        </div>
+                    <div style="margin-left: 1.3rem;">
+                            <button class="btn btn-primary btn__fullscreen--in" onclick="goFullScreen()"><i class="fas fa-expand"></i></button>
+                            <button class="btn btn-primary btn__fullscreen--out d-none" onclick="goOutFullScreen()"><i class="fas fa-compress"></i></button>
+                    </div>    
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="text">
+                        <!-- Paperless Checklist Statistics -->
+                        <spring:message code='paperless.checklist.statistic' />
+                    </h5>
+                </div>
+                <div class="col-md-4 ad" style="top: 1vh; cursor: pointer;">
+                    <div class="form-group right float-right py-1 px-4 d-none">
+                        <span style="font-family: sans-serif;">Administrator</span>
+                        <i class="fas fa-user-circle ml-1"> </i>
+                    </div>
+                    <!-- /.form group -->
+                </div>
+                <img style="position: relative; top: 2.5vh" src="/paperless/assets/images/checklist/header2mini.png"
+                    alt="" width="100%">
+            </div>
+        </div>
+        <!--End header1-->
+
+        <!--Begins header2-->
+        <!-- <div class="header2">
+            <h6 class="text2"><b>FAI</b></h6>
+        </div> -->
+        <!--End header2-->
+    </div>
+    <div class="content">
+        <div class="row">
+            <div class="col-md-5" style="height: calc(60vh);float: left;">
+                <div id="box-1" class="row" style="height: calc(58.8vh);">
+                    <div class="col-md-12 no_data d-none" id="n_chart">
+                        <span style="color: #8ce5ff; font-size: 3vh;"><i class="far fa-dizzy"></i><b> No
+                                Data!</b></span>
+                    </div>
+
+                    <div class="col-md-12 m-3">
+                        <div class="row mb-1" style="width: 99%;">
+                            <div class="col-md-12">
+                                <div style="float: left">
+                                    <span style="color: #8ce5ff; font-size: 2.7vh;"><b id="factory_name">N/A
+                                            Statistic</b></span>
+                                </div>
+                                <div style="float:right">
+                                    <div class="input-group input-group-sm css-time-span">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
+                                        </div>
+                                        <input type="text" class="form-control form-control-sm float-right"
+                                            id="reservation">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row"
+                            style="background-color: #00414d00; width: 98%; color: #fff; border-radius: 6px;">
+                            <div class="" style="overflow-x: auto; margin: auto; z-index: 999;">
+                                <table id="tbl_item">
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="row" style="height: 42vh;">
+                            <div class="col-md-7" style="float: left;">
+                                <div class="w-100 p-0" style="margin: auto; height: 90%;" id="statistic"></div>
+                                <!-- <button class="btn-show-total" onclick="showTotalChecked()">Total Checked</button> -->
+                            </div>
+                            <div class="col-md-5" id="chart_detail" style="float: left;margin: auto;">
+                                <div class="row detail_s">
+                                    <span id="number_check" class="number check">0</span>
+                                    <span class="name check">
+                                        <!-- Quantity Checked -->
+                                        <spring:message code='quantityChecked' />
+                                    </span>
+                                    <span class="progressBar check_bar">
+                                        <progress id="checked" value="0" max="100"></progress>
+                                    </span>
+                                </div>
+                                <div class="row detail_s" style="margin-top: 20px;">
+                                    <span id="number_uncheck" class="number uncheck">0</span>
+                                    <span class="name uncheck" id="status_name_un">
+                                        <!-- Quantity Unchecked -->
+                                        <spring:message code='quantityChecked' />
+                                    </span>
+                                    <span class="progressBar uncheck_bar">
+                                        <progress id="unchecked" value="0" max="100"></progress>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-7 pl-0" style=" height: 60vh;float: left;">
+                <div id="box-2" class="box2 mb-1" style="height: 29vh;">
+                    <div class="col-md-12 no_data" id="n_box-2">
+                        <span style="color: #8ce5ff; font-size: 3vh;"><i class="far fa-meh-rolling-eyes"></i><b> No
+                                Data!</b></span>
+                    </div>
+                    <div class="row" style="padding-top: 5px; padding-left: 15px; width: 100%; height: 100%;"
+                        id="department"></div>
+                </div>
+                <div id="box-2_1" class="box2" style="height: 29vh;">
+                    <div class="col-md-12 no_data" id="n_box-2_1">
+                        <span style="color: #8ce5ff; font-size: 3vh;"><i class="far fa-frown"></i><b> No
+                                Data!</b></span>
+                    </div>
+                    <!-- <div class="row" style="padding: 5px; padding-left: 15px; width: 100%; height: 100%;" id="MEchecklist"> -->
+                    <div class="row" style="padding: 5px; padding-left: 15px; width: 100%; height: 100%;"
+                        id="chart-by-team">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12" style="height: 29vh;">
+                <div id="box-3" style="height: 29vh">
+                    <div class="row" style="margin: auto;">
+                        <div class="col-md-12 m-0 mb-2">
+                            <div class="float-left">
+                                <span id='tbl_title'></span>
+                                <span class="ml-2" id="totalForm"></span>
+                            </div>
+                            <div class="float-left" style="margin-left: 20px;">
+                                <img src="/paperless/assets/images/icon_loading.gif" width="25px" height="25px"
+                                    id="icon_loading" style="margin-right: 16px;" class="icon-loading d-none">
+                            </div>
+                            <input class="float-right ml-2" type="text" id="myInput" onkeyup="myFunction()"
+                                placeholder="Search..." title="Type in a name">
+                            <div class="float-right d_btn d_btn_dis">
+                                <!-- By Paperless Type -->
+                                <spring:message code='by' />-<spring:message code='paperlessType' />
+                            </div>
+                            <div class="float-right d_btn d_btn_dis"><spring:message code='by' />-<spring:message code='me.chu_ki_check' /></div>
+                            <div class="float-right d_btn" onclick="window.location.href='/paperless/me-status-line'">
+                                <!-- By
+                                Line -->
+                                <spring:message code='by' />-<spring:message code='qrcode.line' />
+                            </div>
+                            <div class="float-right d_btn d_btn_dis">All</div>
+                        </div>
+                    </div>
+                    <div class="tableFixHead">
+                        <table class="" id='tbl'>
+                            <thead style="text-align: center;">
+                                <th style="min-width: 30px;">#</th>
+                                <th>
+                                    <!-- QR Code -->
+                                    <spring:message code='home.qr_code' />
+                                </th>
+                                <th>
+                                    <!-- Line -->
+                                    <spring:message code='qrcode.line' />
+                                </th>
+                                <th>
+                                    <!-- Checklist name -->
+                                    <spring:message code='checklistName' />
+                                </th>
+                                <th style="min-width: 165px;">
+                                    <!-- Frequency -->
+                                    <spring:message code='me.chu_ki_check' />
+                                </th>
+                                <!-- <th style="min-width: 80px;">Action</th> -->
+                            </thead>
+                            <tbody id="myTable" style="color: #daf9f7; text-align: center;">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-detail">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 93%;">
+            <div class="modal-content">
+                <div class="modal-header p-2">
+                    <h5 class="modal-title" id="name_form" style="line-height: 1.1;">
+                         <!-- Detail Checklist -->
+                         <spring:message code='paper.detail.checklist' />
+                    </h5>
+                </div>
+
+                <!-- <div class="card" style="max-height: 78vh;"> -->
+                <div class="card">
+                    <div class="card-header d-none">
+                        <h3 class="card-title" id="detail-name-form"></h3>
+                        <div class="card-tools">
+                            <button style="font-size: 15px; border: 0px; background: #fff; padding: 3px 12px;"
+                                id="btn-view-check" class="d-none"> <i class="fas fa-clipboard-check"></i></button>
+                            <button id="btn-change-icon"
+                                style="font-size: 15px; border: 0px; background: #fff; padding: 3px 12px;"
+                                onclick="openNav()"> <i class="fas fa-expand-arrows-alt" id="icon1"></i></button>
+                            <button
+                                style="font-size: 15px; margin-right: 15px; border: 0px; background: #fff; padding: 3px 12px;"
+                                id="btn-export"> <i class="fas fa-download"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="overflow-y: auto;">
+                        <div class=" clear-view">
+                            <div class="dialog-chart-statistic d-none row"></div>
+                            <div class="dialog-chart-statistic d-none row"></div>
+                            <div class="modalQr-code">
+                                <div class="head-table">
+                                    <div class="row clear-view" style="text-align: center; margin-top: 8px;">
+                                        <div class="col-md-1"><b>
+                                            <!-- Xưởng -->
+                                            <spring:message code='me.factory' />
+                                            : </b><span id="detail-factory"></span></div>
+                                        <div class="col-md-2"><b>
+                                            <!-- Tầng -->
+                                            <spring:message code='me.floor' />
+                                            : </b><span id="detail-floor"></span></div>
+                                        <div class="col-md-2"><b>
+                                            <!-- Chuyền -->
+                                            <spring:message code='qrcode.line' />
+                                            : </b><span id="detail-line"></span></div>
+                                        <div class="col-md-2"><b>
+                                            <!-- Chu kì kiểm tra -->
+                                            <spring:message code='me.chu_ki_check' />
+                                            : </b><span id="detail-cycle"></span>
+                                        </div>
+                                        <div class="col-md-3"><b>
+                                            <!-- Mã thiết bị -->
+                                            <spring:message code='home.qr_code' />
+                                            : </b><span id="detail-qr"></span></div>
+                                        <div class="col-md-2"><b>
+                                            <!-- Thời gian -->
+                                            <spring:message code='me.time_date' />
+                                            : </b><span id="detail-time"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="overflow-x: scroll; margin:8px 0px;">
+                                    <table id="statistic-data-check-qr" border="1">
+                                        <thead></thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                                <p class="clear-view" style="margin-bottom: 8px; text-align: right; margin-right: 8px;">
+                                    <b>
+                                        <!-- Mã biểu -->
+                                        <spring:message code='paper.code' />
+                                        : </b><span id="detail-form-code"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer p-1">
+                    <button type="button" class="btn btn-danger btn-sm" data-dismiss="modal"
+                        style="margin-right: 5px;"><i class="fa fa-times"></i> 
+                        <!-- Close -->
+                        <spring:message code='close' />
+                    </button>
+                </div>
+
+            </div>
+        </div>
+        <div class="view-image" id="view-image"></div>
+<!-- </body> -->
+
+<!-- <script src="/paperless/assets/plugins/highchart/modules/highstock.js"></script> -->
+<script src="/paperless/assets/plugins/highchart/themes/dark-unica.js"></script>
 <script>
     
 let isLoading = true;
@@ -49,15 +1037,25 @@ function goOutFullScreen() {
         formTimeout: null,
     }
 
-    var sBu = searchParams('nameBU');
-    var idFactory = searchParams('id-bu');  
-    
     var dataset = {};
-    var count = 1
+    var count = 1;
 
     var get_session = window.sessionStorage.getItem('dataset');
-    if (get_session != undefined) {
-        dataset = JSON.parse(get_session);
+    if (get_session != undefined && get_session !== "undefined") {
+        try {
+            dataset = JSON.parse(get_session) || {};
+        } catch (error) {
+            dataset = {};
+        }
+    }
+
+    var sBu = searchParams('nameBU');
+    if (sBu == null && dataset.sbuName) {
+        sBu = dataset.sbuName;
+    }
+    var idFactory = searchParams('id-bu');
+    if (idFactory == null && dataset.idBu) {
+        idFactory = dataset.idBu;
     }
 
     var timeTitle = '';
@@ -123,13 +1121,12 @@ function goOutFullScreen() {
 
     $("#btnBu").change(function () {
         isLoading = true;
-        // sbuName = $("#btnBu").find("option:selected").val();
-        // sbuName = $(this).val();
-        // dataset.sbuName = $(this).val();
-        // idBu = '';
-        // var nameFactory = $("#btnBu").val();
         _state.nameFactory = $("#btnBu").val();
-        getFactory(_state.nameFactory); 
+        dataset.sbuName = _state.nameFactory;
+        dataset.idBu = null;
+        idFactory = null;
+        window.sessionStorage.setItem('dataset', JSON.stringify(dataset));
+        getFactory(_state.nameFactory);
     });
 
 
@@ -160,20 +1157,25 @@ function goOutFullScreen() {
                     $('#select-factory').html(htmlFactory);
                     // $('#select-factory').val(idBu);
                     
+                    var selectedFactoryId = null;
                     if (idFactory != null) {
-                        $("#select-factory [value=" + idFactory + "]").attr("selected", true);
-                        //  _state.idFac=idFactory
-                        // loadItem(idFactory);
-
-                        _state.idFac=idFactory;
-                        loadItem(_state.idFac);
-
-                    } else {
-                        $("#select-factory [value=" + data[0]['id'] + "]").attr("selected", true);
-                        _state.idFac = data[0]['id']
-                        loadItem(_state.idFac)
-                        // loadItem(data[0]['id']);
+                        for (var j = 0; j < data.length; j++) {
+                            if (data[j]['id'] == idFactory) {
+                                selectedFactoryId = data[j]['id'];
+                                break;
+                            }
+                        }
                     }
+
+                    if (selectedFactoryId == null) {
+                        selectedFactoryId = data[0]['id'];
+                    }
+
+                    $('#select-factory').val(selectedFactoryId);
+                    _state.idFac = selectedFactoryId;
+                    idFactory = selectedFactoryId;
+                    dataset.idBu = selectedFactoryId;
+                    loadItem(_state.idFac);
 
                     // if (idBu != null && idBu != '') {
                     // }
@@ -198,10 +1200,12 @@ function goOutFullScreen() {
         // idBu = $(this).val();
         // dataset.idBu = $(this).val();
         var idFac = $("#select-factory").val();
-        _state.idFac=idFac;
+        _state.idFac = idFac;
+        idFactory = idFac;
+        dataset.idBu = idFac;
         console.log(_state.idFac);
-        loadItem(idFac);
         window.sessionStorage.setItem('dataset', JSON.stringify(dataset));
+        loadItem(idFac);
 
     });
 
@@ -1577,7 +2581,7 @@ function goOutFullScreen() {
             isLoading = false;
             if (!isLoading){
                 window.autoReloadTimeout && clearInterval(window.autoReloadTimeout);
-                window.autoReloadTimeout = setInterval(reloadData, 300000);
+                window.autoReloadTimeout = setInterval(reloadData, 10000);
             }
         }
         });
