@@ -1037,25 +1037,51 @@ function goOutFullScreen() {
         formTimeout: null,
     }
 
-    var dataset = {};
-    var count = 1;
+    const selection = {
+        bu: null,
+        factory: null
+    };
 
-    var get_session = window.sessionStorage.getItem('dataset');
-    if (get_session != undefined && get_session !== "undefined") {
-        try {
-            dataset = JSON.parse(get_session) || {};
-        } catch (error) {
-            dataset = {};
+    function captureSelections() {
+        var currentBu = $('#btnBu').val();
+        if (currentBu !== undefined && currentBu !== null && currentBu !== '') {
+            selection.bu = currentBu;
+        }
+
+        var currentFactory = $('#select-factory').val();
+        if (currentFactory !== undefined && currentFactory !== null && currentFactory !== '') {
+            selection.factory = currentFactory;
+        }
+    }
+
+    function restoreSelections() {
+        var $buSelect = $('#btnBu');
+        var $factorySelect = $('#select-factory');
+
+        if (selection.bu && $buSelect.find('option').filter(function () {
+            return $(this).val() == selection.bu;
+        }).length) {
+            $buSelect.val(selection.bu);
+            _state.nameFactory = selection.bu;
+        }
+
+        if (selection.factory && $factorySelect.find('option').filter(function () {
+            return $(this).val() == selection.factory;
+        }).length) {
+            $factorySelect.val(selection.factory);
+            _state.idFac = selection.factory;
         }
     }
 
     var sBu = searchParams('nameBU');
-    if (sBu == null && dataset.sbuName) {
-        sBu = dataset.sbuName;
-    }
-    var idFactory = searchParams('id-bu');
-    if (idFactory == null && dataset.idBu) {
-        idFactory = dataset.idBu;
+    var idFactory = searchParams('id-bu');  
+    
+    var dataset = {};
+    var count = 1
+
+    var get_session = window.sessionStorage.getItem('dataset');
+    if (get_session != undefined) {
+        dataset = JSON.parse(get_session);
     }
 
     var timeTitle = '';
@@ -1099,10 +1125,14 @@ function goOutFullScreen() {
                     // $('#btnBu').val(sbuName);
 
                     if (sBu != null) {
-                        $("#btnBu [value=" + sBu + "]").attr("selected", true);
+                        $('#btnBu').val(sBu);
+                        _state.nameFactory = sBu;
+                        selection.bu = sBu;
                         getFactory(sBu);
                     } else {
-                        $("#btnBu [value=" + data[0] + "]").attr("selected", true);
+                        $('#btnBu').val(data[0]);
+                        _state.nameFactory = data[0];
+                        selection.bu = data[0];
                         getFactory(data[0]);
                     }
 
@@ -1121,12 +1151,15 @@ function goOutFullScreen() {
 
     $("#btnBu").change(function () {
         isLoading = true;
+        // sbuName = $("#btnBu").find("option:selected").val();
+        // sbuName = $(this).val();
+        // dataset.sbuName = $(this).val();
+        // idBu = '';
+        // var nameFactory = $("#btnBu").val();
         _state.nameFactory = $("#btnBu").val();
-        dataset.sbuName = _state.nameFactory;
-        dataset.idBu = null;
-        idFactory = null;
-        window.sessionStorage.setItem('dataset', JSON.stringify(dataset));
-        getFactory(_state.nameFactory);
+        selection.bu = _state.nameFactory;
+        selection.factory = null;
+        getFactory(_state.nameFactory); 
     });
 
 
@@ -1155,26 +1188,28 @@ function goOutFullScreen() {
                     }
                     // idBu = (idBu != '' ? idBu : data[0]['id']);
                     $('#select-factory').html(htmlFactory);
-                    // $('#select-factory').val(idBu);
-                    
-                    var selectedFactoryId = null;
-                    if (idFactory != null) {
+
+                    var preferredFactory = selection.factory || idFactory;
+                    var fallbackFactory = data[0]['id'];
+                    var matchedFactory = fallbackFactory;
+
+                    if (preferredFactory != null) {
                         for (var j = 0; j < data.length; j++) {
-                            if (data[j]['id'] == idFactory) {
-                                selectedFactoryId = data[j]['id'];
+                            if (data[j]['id'] == preferredFactory) {
+                                matchedFactory = preferredFactory;
                                 break;
                             }
                         }
                     }
 
-                    if (selectedFactoryId == null) {
-                        selectedFactoryId = data[0]['id'];
+                    $('#select-factory').val(matchedFactory);
+                    _state.idFac = matchedFactory;
+
+                    if (idFactory != null && preferredFactory == idFactory) {
+                        idFactory = null;
                     }
 
-                    $('#select-factory').val(selectedFactoryId);
-                    _state.idFac = selectedFactoryId;
-                    idFactory = selectedFactoryId;
-                    dataset.idBu = selectedFactoryId;
+                    captureSelections();
                     loadItem(_state.idFac);
 
                     // if (idBu != null && idBu != '') {
@@ -1200,12 +1235,11 @@ function goOutFullScreen() {
         // idBu = $(this).val();
         // dataset.idBu = $(this).val();
         var idFac = $("#select-factory").val();
-        _state.idFac = idFac;
-        idFactory = idFac;
-        dataset.idBu = idFac;
+        _state.idFac=idFac;
         console.log(_state.idFac);
-        window.sessionStorage.setItem('dataset', JSON.stringify(dataset));
         loadItem(idFac);
+        captureSelections();
+        window.sessionStorage.setItem('dataset', JSON.stringify(dataset));
 
     });
 
@@ -2581,7 +2615,7 @@ function goOutFullScreen() {
             isLoading = false;
             if (!isLoading){
                 window.autoReloadTimeout && clearInterval(window.autoReloadTimeout);
-                window.autoReloadTimeout = setInterval(reloadData, 10000);
+                window.autoReloadTimeout = setInterval(reloadData, 300000);
             }
         }
         });
@@ -2797,6 +2831,8 @@ function goOutFullScreen() {
             console.log("loading");
             return; 
         }
+
+        restoreSelections();
         
         var currentTime = moment().format("YYYY/MM/DD HH:mm");
         $('#reservation').data('daterangepicker').setStartDate(currentTime);
